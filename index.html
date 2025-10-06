@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Video SSAI Workflow with SCTE-35 Markers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 40px;
+            background: linear-gradient(90deg, #00d4ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2 {
+            font-size: 1.8em;
+            margin: 25px 0 15px;
+        }
+        
+        h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        h4 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            margin-top: 15px;
+        }
+        
+        .flow-stage {
+            margin-bottom: 30px;
+        }
+        
+        .flow-box {
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .purple-box { background: linear-gradient(135deg, #6a0dad 0%, #4b0082 100%); }
+        .blue-box { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); }
+        .green-box { background: linear-gradient(135deg, #065f46 0%, #047857 100%); }
+        .cyan-box { background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%); }
+        .indigo-box { background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%); }
+        .red-box { background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); }
+        .orange-box { background: linear-gradient(135deg, #c2410c 0%, #ea580c 100%); }
+        
+        .box-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .box-title {
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+        
+        .box-subtitle {
+            opacity: 0.9;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+        }
+        
+        .icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        ul li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        ul li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .arrow-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .arrow {
+            display: inline-block;
+            font-size: 2em;
+            color: #00d4ff;
+        }
+        
+        .arrow-label {
+            display: inline-block;
+            background: #1e40af;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+        
+        .marker-indicator {
+            background: #fbbf24;
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 0.85em;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 15px;
+        }
+        
+        .code-block {
+            background: #1f2937;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            margin-top: 15px;
+            overflow-x: auto;
+        }
+        
+        .info-box {
+            background: rgba(234, 88, 12, 0.2);
+            border: 2px solid #ea580c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .key-info-section {
+            background: rgba(31, 41, 55, 0.9);
+            border: 2px solid #fbbf24;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        
+        .protocol-section {
+            background: rgba(31, 41, 55, 0.9);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+        
+        .protocol-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .protocol-badge {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            white-space: nowrap;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        .badge-purple { background: #6a0dad; }
+        .badge-blue { background: #1e40af; }
+        .badge-green { background: #047857; }
+        .badge-red { background: #b91c1c; }
+        .badge-cyan { background: #0891b2; }
+        
+        strong {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Live Video SSAI Workflow with SCTE-35 Markers</h1>
+        
+        <!-- Stage 1 -->
+        <div class="flow-stage">
+            <div class="flow-box purple-box">
+                <div class="box-header">
+                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+                    <span class="box-title">1. Video Source</span>
+                </div>
+                <div class="box-subtitle">Live encoder/camera</div>
+                <ul>
+                    <li>Camera/Encoder</li>
+                    <li>Hardware: Teradek, LiveU, Tricaster</li>
+                    <li>Software: OBS, vMix, Wirecast</li>
+                </ul>
+            </div>
+            <div class="arrow-container">
+                <span class="arrow">↓</span>
+                <span class="arrow-label">RTMP/SRT Stream</span>
+            </div>
+        </div>
+        
+        <!-- Stage 2 -->
+        <div class="flow-stage">
+            <div class="flow-box blue-box">
+                <div class="box-header">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                    <span class="box-title">2. Ingest & Transcoding</span>
+                </div>
+                <div class="box-subtitle">AWS MediaLive / Wowza</div>
+                <ul>
+                    <li>Receives RTMP input stream</li>
+                    <li>Creates ABR ladder (multiple bitrates)</li>
+                    <li>Example: 1080p, 720p, 480p, 360p</li>
+                    <li>Encodes to H.264/HEVC + AAC</li>
+                </ul>
+                <div class="marker-indicator">
+                    ⚡ SCTE-35 MARKER INSERTION POINT
+                </div>
+                <div class="info-box">
+                    <strong>Marker Insertion Method:</strong><br>
+                    • Via API call (MediaLive Schedule API)<br>
+                    • Manual trigger from control room<br>
+                    • Automated via broadcast automation system<br>
+                    • Embedded in RTMP AMF metadata (legacy)
+                </div>
+            </div>
+            <div class="arrow-container">
+                <span class="arrow">↓</span>
+                <span class="arrow-label">HLS/DASH with SCTE-35</span>
+            </div>
+        </div>
+        
+        <!-- Stage 3 -->
+        <div class="flow-stage">
+            <div class="flow-box green-box">
+                <div class="box-header">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                    <span class="box-title">3. Origin/Packaging</span>
+                </div>
+                <div class="box-subtitle">AWS MediaPackage / Wowza</div>
+                <ul>
+                    <li>Packages stream into HLS/DASH</li>
+                    <li>Maintains SCTE-35 markers in manifest</li>
+                    <li>Provides DVR/time-shift capability</li>
+                    <li>Creates origin for CDN distribution</li>
+                </ul>
+                <div class="code-block">
+#EXT-X-DATERANGE:ID="splice-001",<br>
+START-DATE="2025-10-06T10:30:00Z",<br>
+DURATION=120,SCTE35-OUT=0xFC...
+                </div>
+            </div>
+            <div class="arrow-container">
+                <span class="arrow">↓</span>
+                <span class="arrow-label">Manifest + SCTE-35 Markers</span>
+            </div>
+        </div>
+        
+        <!-- Stage 4 - SSAI Split into two columns -->
+        <div class="flow-stage">
+            <div class="grid-2">
+                <div class="flow-box orange-box">
+                    <div class="box-header">
+                        <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span class="box-title">4A. Ad Decision Server</span>
+                    </div>
+                    <div class="box-subtitle">Google Ad Manager / FreeWheel</div>
+                    <ul>
+                        <li>Receives ad request with viewer data</li>
+                        <li>User location, device type, demographics</li>
+                        <li>Decides which ads to serve</li>
+                        <li>Returns VAST/VMAP response</li>
+                        <li>Ad creative URLs + tracking beacons</li>
+                    </ul>
+                </div>
+                
+                <div class="flow-box red-box">
+                    <div class="box-header">
+                        <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                        <span class="box-title">4B. SSAI Service</span>
+                    </div>
+                    <div class="box-subtitle">AWS MediaTailor / Yospace</div>
+                    <ul>
+                        <li>Detects SCTE-35 markers in stream</li>
+                        <li>Requests ads from Ad Decision Server</li>
+                        <li>Transcodes ad to match stream quality</li>
+                        <li>Stitches ad into live stream</li>
+                        <li>Creates personalized manifest per viewer</li>
+                        <li>Fires tracking beacons (impressions, quartiles)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="arrow-container">
+                <span class="arrow">↓</span>
+                <span class="arrow-label">Personalized HLS Manifest</span>
+            </div>
+        </div>
+        
+        <!-- Stage 5 -->
+        <div class="flow-stage">
+            <div class="flow-box cyan-box">
+                <div class="box-header">
+                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="box-title">5. CDN Distribution</span>
+                </div>
+                <div class="box-subtitle">CloudFront / Akamai / Fastly</div>
+                <ul>
+                    <li>Caches video segments globally</li>
+                    <li>Reduces latency for viewers</li>
+                    <li>Handles scale (millions of viewers)</li>
+                    <li>Delivers both content + ads</li>
+                </ul>
+            </div>
+            <div class="arrow-container">
+                <span class="arrow">↓</span>
+                <span class="arrow-label">HLS Stream (Content + Ads Stitched)</span>
+            </div>
+        </div>
+        
+        <!-- Stage 6 -->
+        <div class="flow-stage">
+            <div class="flow-box indigo-box">
+                <div class="box-header">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                    <span class="box-title">6. CTV/OTT Application</span>
+                </div>
+                <div class="box-subtitle">Roku / Apple TV / Samsung / LG</div>
+                <ul>
+                    <li>Video player (native or SDK)</li>
+                    <li>Receives seamless stream (content + ads)</li>
+                    <li>No buffering between content and ads</li>
+                    <li>Cannot skip ads (server-stitched)</li>
+                    <li>Player fires additional tracking events</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Key Information -->
+        <div class="key-info-section">
+            <h3 style="color: #fbbf24; margin-bottom: 20px;">Key Points About SCTE-35 Markers</h3>
+            <div class="grid-2">
+                <div>
+                    <h4 style="color: #10b981;">What SCTE-35 Markers Contain:</h4>
+                    <ul>
+                        <li>Splice command type (splice_insert, time_signal)</li>
+                        <li>Unique event ID</li>
+                        <li>Duration of ad break</li>
+                        <li>PTS (Presentation Time Stamp)</li>
+                        <li>Segmentation descriptors (program start/end, chapter, etc.)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: #60a5fa;">Signal Flow:</h4>
+                    <ul>
+                        <li>Inserted at transcoding layer (Stage 2)</li>
+                        <li>Preserved through packaging (Stage 3)</li>
+                        <li>Detected by SSAI service (Stage 4)</li>
+                        <li>Triggers ad decision request</li>
+                        <li>Results in seamless ad insertion</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Protocol Summary -->
+        <div class="protocol-section">
+            <h3>Video Formats at Each Stage</h3>
+            
+            <div class="protocol-item">
+                <span class="protocol-badge badge-purple">Stage 1→2</span>
+                <span>RTMP, SRT, or RTSP (uncompressed or mezzanine)</span>
+            </div>
+            
+            <div class="protocol-item">
+                <span class="protocol-badge badge-blue">Stage 2→3</span>
+                <span>HLS (.m3u8 + .ts segments) or DASH with SCTE-35 in manifest</span>
+            </div>
+            
+            <div class="protocol-item">
+                <span class="protocol-badge badge-green">Stage 3→4</span>
+                <span>HLS manifest with SCTE-35 markers (#EXT-X-DATERANGE)</span>
+            </div>
+            
+            <div class="protocol-item">
+                <span class="protocol-badge badge-red">Stage 4→5</span>
+                <span>Personalized HLS manifest (ads stitched in place of markers)</span>
+            </div>
+            
+            <div class="protocol-item">
+                <span class="protocol-badge badge-cyan">Stage 5→6</span>
+                <span>HLS delivery via HTTPS (video segments + audio)</span>
+            </div>
+        </div>
+        
+        <!-- Additional Info Box -->
+        <div class="key-info-section" style="border-color: #00d4ff;">
+            <h3 style="color: #00d4ff;">SSAI Advantages</h3>
+            <div class="grid-2">
+                <div>
+                    <h4 style="color: #10b981;">User Experience:</h4>
+                    <ul>
+                        <li>Seamless playback (no buffering)</li>
+                        <li>Ads appear identical to content</li>
+                        <li>Cannot be blocked by ad blockers</li>
+                        <li>Works with DVR/time-shift</li>
+                        <li>Consistent quality across content and ads</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: #60a5fa;">Technical Benefits:</h4>
+                    <ul>
+                        <li>Single player implementation</li>
+                        <li>No client-side ad SDK required</li>
+                        <li>Better ad completion rates</li>
+                        <li>Personalized ads per viewer</li>
+                        <li>Enterprise-grade reliability</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cost Considerations -->
+        <div class="key-info-section" style="border-color: #fbbf24;">
+            <h3 style="color: #fbbf24;">Cost Considerations</h3>
+            <div style="background: rgba(31, 41, 55, 0.5); padding: 20px; border-radius: 8px;">
+                <h4 style="color: #fbbf24;">AWS MediaLive + MediaPackage + MediaTailor:</h4>
+                <ul style="margin-top: 10px;">
+                    <li><strong>MediaLive:</strong> ~$3-10/hour per channel (based on encoding complexity and bitrates)</li>
+                    <li><strong>MediaPackage:</strong> $0.04/GB ingested + $0.08/GB delivered (varies by region)</li>
+                    <li><strong>MediaTailor:</strong> $0.0045 per ad decision + $0.00135 per manifest generation</li>
+                    <li><strong>CloudFront CDN:</strong> $0.085/GB for first 10TB (decreases with volume)</li>
+                </ul>
+                <p style="margin-top: 15px; padding: 15px; background: rgba(234, 88, 12, 0.2); border-radius: 8px;">
+                    <strong>Example Cost:</strong> For a 24/7 channel with 10,000 concurrent viewers, expect $5,000-15,000/month in infrastructure costs (excluding content acquisition and ad server fees).
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
